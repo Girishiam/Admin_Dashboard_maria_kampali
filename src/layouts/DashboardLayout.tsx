@@ -39,9 +39,11 @@ function DashboardLayout() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleLogout = () => {
-    navigate('/login');
-  };
+const handleLogout = () => {
+  localStorage.removeItem('isAuthenticated');
+  localStorage.removeItem('userEmail');
+  navigate('/login');
+};
 
   return (
     <div className="flex min-h-screen bg-[#E6F0F5]">
