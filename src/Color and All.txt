@@ -1,0 +1,2 @@
+Background color : #E6F0F5;
+Button color: #005440;
