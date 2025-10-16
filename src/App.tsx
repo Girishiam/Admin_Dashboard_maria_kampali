@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/auth/login';
 import ForgotPassword from './pages/auth/ForgotPassword';
@@ -13,8 +14,25 @@ import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsConditions from './pages/TermsConditions';
 import DashboardLayout from './layouts/DashboardLayout';
 import ProtectedRoute from './routes/ProtectedRoute';
+import GlobalLoader from './components/GlobalLoader';
 
 function App() {
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Simulate loading time (check auth, fetch initial data, etc.)
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 1500); // Show loader for 1.5 seconds
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Show loading screen
+  if (loading) {
+    return <GlobalLoader />;
+  }
+
   return (
     <BrowserRouter>
       <Routes>
@@ -47,22 +65,6 @@ function App() {
         />
         
         {/* Protected Dashboard Routes - WITH DASHBOARD LAYOUT */}
-        <Route
-          path="/dashboard-layout"
-          element={
-            <ProtectedRoute>
-              <DashboardLayout />
-            </ProtectedRoute>
-          }
-        >
-          <Route path="dashboard" element={<Dashboard />} />
-          <Route path="users" element={<Users />} />
-          <Route path="administrators" element={<Administrators />} />
-          <Route path="payment" element={<Payment />} />
-          <Route path="apis" element={<APIs />} />
-        </Route>
-
-        {/* Direct routes for dashboard pages */}
         <Route
           path="/dashboard"
           element={
