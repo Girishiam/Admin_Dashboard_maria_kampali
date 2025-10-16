@@ -18,6 +18,9 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Root redirects to login */}
+        <Route path="/" element={<Navigate to="/login" replace />} />
+        
         {/* Auth Routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -45,20 +48,74 @@ function App() {
         
         {/* Protected Dashboard Routes - WITH DASHBOARD LAYOUT */}
         <Route
-          path="/"
+          path="/dashboard-layout"
           element={
             <ProtectedRoute>
               <DashboardLayout />
             </ProtectedRoute>
           }
         >
-          <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="users" element={<Users />} />
           <Route path="administrators" element={<Administrators />} />
           <Route path="payment" element={<Payment />} />
           <Route path="apis" element={<APIs />} />
-          {/* DO NOT PUT PRIVACY POLICY AND TERMS HERE */}
+        </Route>
+
+        {/* Direct routes for dashboard pages */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <DashboardLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<Dashboard />} />
+        </Route>
+
+        <Route
+          path="/users"
+          element={
+            <ProtectedRoute>
+              <DashboardLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<Users />} />
+        </Route>
+
+        <Route
+          path="/administrators"
+          element={
+            <ProtectedRoute>
+              <DashboardLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<Administrators />} />
+        </Route>
+
+        <Route
+          path="/payment"
+          element={
+            <ProtectedRoute>
+              <DashboardLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<Payment />} />
+        </Route>
+
+        <Route
+          path="/apis"
+          element={
+            <ProtectedRoute>
+              <DashboardLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<APIs />} />
         </Route>
       </Routes>
     </BrowserRouter>

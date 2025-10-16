@@ -11,6 +11,16 @@ function Login() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Set authentication in localStorage
+    localStorage.setItem('isAuthenticated', 'true');
+    
+    // Optional: Store user email if remember me is checked
+    if (rememberMe) {
+      localStorage.setItem('userEmail', email);
+    }
+    
+    // Navigate to dashboard
     navigate('/dashboard');
   };
 
