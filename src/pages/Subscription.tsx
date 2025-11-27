@@ -7,6 +7,7 @@ import {
   PlusIcon
 } from '@heroicons/react/24/outline';
 import CreatePlanModal from '../components/modals/CreatePlanModal';
+import EditPlanModal from '../components/modals/EditPlanModal';
 import PlanDetailsModal from '../components/modals/PlanDetailsModal';
 import ManageCustomerModal from '../components/modals/ManageCustomerModal';
 
@@ -43,7 +44,9 @@ function Subscription() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'plans' | 'subscriptions' | 'customers'>('dashboard');
   
   const [isCreatePlanOpen, setIsCreatePlanOpen] = useState(false);
+  const [isEditPlanOpen, setIsEditPlanOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(null);
+  const [editingPlan, setEditingPlan] = useState<SubscriptionPlan | null>(null);
   const [selectedSubscription, setSelectedSubscription] = useState<Subscription | null>(null);
 
   const plans: SubscriptionPlan[] = [
@@ -66,6 +69,18 @@ function Subscription() {
 
   const handleCreatePlan = (data: any) => {
     console.log('Creating plan:', data);
+  };
+
+  const handleEditPlan = (plan: SubscriptionPlan) => {
+    setEditingPlan(plan);
+    setIsEditPlanOpen(true);
+  };
+
+  const handleUpdatePlan = (data: any) => {
+    console.log('Updating plan:', data);
+    // Here you would typically update the state or make an API call
+    setIsEditPlanOpen(false);
+    setEditingPlan(null);
   };
 
   const getStatusColor = (status: string) => {
@@ -179,7 +194,12 @@ function Subscription() {
                   </div>
                 </div>
                 <div className="bg-gray-50 px-4 lg:px-6 py-3 flex justify-end gap-4">
-                  <button className="text-xs lg:text-sm font-medium text-gray-600 hover:text-gray-900">Edit</button>
+                  <button 
+                    onClick={() => handleEditPlan(plan)}
+                    className="text-xs lg:text-sm font-medium text-gray-600 hover:text-gray-900"
+                  >
+                    Edit
+                  </button>
                   <button 
                     onClick={() => setSelectedPlan(plan)}
                     className="text-xs lg:text-sm font-medium text-[#005440] hover:text-[#004433]"
@@ -262,6 +282,13 @@ function Subscription() {
         onSubmit={handleCreatePlan}
       />
       
+      <EditPlanModal 
+        isOpen={isEditPlanOpen} 
+        onClose={() => setIsEditPlanOpen(false)} 
+        onSubmit={handleUpdatePlan}
+        plan={editingPlan}
+      />
+
       <PlanDetailsModal 
         isOpen={!!selectedPlan} 
         onClose={() => setSelectedPlan(null)} 
