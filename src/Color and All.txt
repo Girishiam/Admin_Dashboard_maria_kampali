@@ -1,2 +1,16 @@
 Background color : #E6F0F5;
 Button color: #005440;
+
+
+typography: 
+
+font-family: SF Pro;
+font-weight: 700;
+font-style: Bold;
+font-size: 32px;
+leading-trim: NONE;
+line-height: 100%;
+letter-spacing: 0px;
+text-align: center;
+
+

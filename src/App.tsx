@@ -9,6 +9,7 @@ import Dashboard from './pages/Dashboard';
 import Users from './pages/Users';
 import Administrators from './pages/Administrators';
 import Payment from './pages/Payment';
+import Subscription from './pages/Subscription';
 import APIs from './pages/APIs';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsConditions from './pages/TermsConditions';
@@ -118,6 +119,17 @@ function App() {
           }
         >
           <Route index element={<APIs />} />
+        </Route>
+
+        <Route
+          path="/subscription"
+          element={
+            <ProtectedRoute>
+              <DashboardLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<Subscription />} />
         </Route>
       </Routes>
     </BrowserRouter>

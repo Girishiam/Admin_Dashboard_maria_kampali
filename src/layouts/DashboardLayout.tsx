@@ -17,6 +17,7 @@ const menuItems = [
   { path: '/users', icon: '/icons/user_icon.png', label: 'User Management' },
   { path: '/administrators', icon: '/icons/admin_icon.png', label: 'Administrators' },
   { path: '/payment', icon: '/icons/payment_icon.png', label: 'Payment' },
+  { path: '/subscription', icon: '/icons/payment_icon.png', label: 'Subscription' },
   { path: '/apis', icon: '/icons/api_icon.png', label: "API's" }
 ];
 

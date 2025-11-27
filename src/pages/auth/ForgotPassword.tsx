@@ -164,7 +164,7 @@ function ForgotPassword() {
           {/* Back to Login */}
           <div className="text-center mt-6">
             <Link 
-              to="/login"
+              to="/auth/login"
               className="text-sm font-medium transition-colors duration-200 inline-flex items-center"
               style={{ color: '#005440' }}
             >
