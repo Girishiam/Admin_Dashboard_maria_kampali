@@ -1,27 +1,38 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
+import { login, LoginError } from '../../services/api_call';
 
 function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Set authentication in localStorage
-    localStorage.setItem('isAuthenticated', 'true');
-    
-    // Optional: Store user email if remember me is checked
-    if (rememberMe) {
-      localStorage.setItem('userEmail', email);
+    setError(null);
+    setIsLoading(true);
+
+    try {
+      const response = await login(email, password, rememberMe);
+      
+      // Store tokens and user info
+      localStorage.setItem('accessToken', response.data.tokens.access);
+      localStorage.setItem('refreshToken', response.data.tokens.refresh);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+      localStorage.setItem('isAuthenticated', 'true');
+      
+      navigate('/dashboard');
+    } catch (err) {
+      const errorData = err as LoginError;
+      setError(errorData.error || 'An error occurred during login.');
+    } finally {
+      setIsLoading(false);
     }
-    
-    // Navigate to dashboard
-    navigate('/dashboard');
   };
 
   return (
@@ -46,6 +57,7 @@ function Login() {
           </div>
 
           {/* Title Section */}
+
           <div className="text-center space-y-2 mb-8">
             <h1 
               className="text-gray-900 font-sf-pro"
@@ -69,6 +81,11 @@ function Login() {
             >
               Please enter your email and password to continue
             </p>
+            {error && (
+              <div className="bg-red-50 text-red-500 text-sm p-3 rounded-lg mt-4">
+                {error}
+              </div>
+            )}
           </div>
 
           {/* Form */}
@@ -153,12 +170,13 @@ function Login() {
             {/* Submit Button */}
             <button
               type="submit"
-              className="w-full h-[52px] text-white font-semibold rounded-lg transition-all duration-200 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] mt-6"
+              disabled={isLoading}
+              className="w-full h-[52px] text-white font-semibold rounded-lg transition-all duration-200 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] mt-6 disabled:opacity-70 disabled:cursor-not-allowed"
               style={{
                 backgroundColor: '#005440',
               }}
             >
-              Sign in
+              {isLoading ? 'Signing in...' : 'Sign in'}
             </button>
           </form>
         </div>
