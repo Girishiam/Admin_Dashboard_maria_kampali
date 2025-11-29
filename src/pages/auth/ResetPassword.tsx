@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
+import { resetPassword, LoginError } from '../../services/api_call';
 
 function ResetPassword() {
   const [newPassword, setNewPassword] = useState('');
@@ -10,6 +11,8 @@ function ResetPassword() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  const token = location.state?.token;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,12 +31,28 @@ function ResetPassword() {
 
     setIsLoading(true);
 
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      if (!token) {
+        setError('Invalid or missing reset token. Please request a new OTP.');
+        return;
+      }
+      await resetPassword(token, newPassword);
+      
       // Navigate to success page or login
+      // The prompt says "Password updated successfully" message.
+      // I will navigate to login for now, or maybe the success page if it exists.
+      // The file structure showed PasswordResetSuccess.tsx.
       navigate('/password-reset-success');
-    }, 1500);
+    } catch (err) {
+      const errorData = err as LoginError;
+      if (errorData.details && errorData.details.password) {
+        setError(errorData.details.password[0]);
+      } else {
+        setError(errorData.error || 'Failed to reset password.');
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

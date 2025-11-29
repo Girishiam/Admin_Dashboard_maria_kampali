@@ -1,11 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { verifyPasswordResetOtp, LoginError } from '../../services/api_call';
 
 function VerifyOTP() {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const navigate = useNavigate();
+  const location = useLocation();
+  const email = location.state?.email;
 
   useEffect(() => {
     // Focus first input on mount
@@ -59,13 +63,24 @@ function VerifyOTP() {
     }
 
     setIsLoading(true);
+    setError(null);
 
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      const otpString = otp.join('');
+      if (!email) {
+        setError('Email not found. Please try again.');
+        return;
+      }
+      const response = await verifyPasswordResetOtp(email, otpString);
+      
+      // Navigate to reset password page with token
+      navigate('/reset-password', { state: { token: response.data.reset_token } });
+    } catch (err) {
+      const errorData = err as LoginError;
+      setError(errorData.error || 'Invalid or expired OTP.');
+    } finally {
       setIsLoading(false);
-      // Navigate to reset password page or dashboard
-      navigate('/reset-password');
-    }, 1500);
+    }
   };
 
   const handleResend = () => {
@@ -119,8 +134,13 @@ function VerifyOTP() {
                 lineHeight: '150%',
               }}
             >
-              We sent a code to your email address @. Please check your email for the 6 digit code.
+              We sent a code to your email address {email ? <strong>{email}</strong> : ''}. Please check your email for the 6 digit code.
             </p>
+            {error && (
+              <div className="bg-red-50 text-red-500 text-sm p-3 rounded-lg mt-4">
+                {error}
+              </div>
+            )}
           </div>
 
           {/* OTP Form */}

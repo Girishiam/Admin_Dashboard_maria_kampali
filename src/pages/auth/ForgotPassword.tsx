@@ -1,22 +1,29 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { sendPasswordResetOtp, LoginError } from '../../services/api_call';
 
 function ForgotPassword() {
   const [email, setEmail] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setError(null);
 
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
-      // Navigate to OTP verification
+    try {
+      await sendPasswordResetOtp(email);
+      // Navigate to OTP verification with email in state
       navigate('/verify-otp', { state: { email } });
-    }, 1500);
+    } catch (err) {
+      const errorData = err as LoginError;
+      setError(errorData.error || 'An error occurred. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (isSubmitted) {
@@ -127,6 +134,11 @@ function ForgotPassword() {
             >
               Please enter your email to get verification code
             </p>
+            {error && (
+              <div className="bg-red-50 text-red-500 text-sm p-3 rounded-lg mt-4">
+                {error}
+              </div>
+            )}
           </div>
 
           {/* Form */}
@@ -164,7 +176,7 @@ function ForgotPassword() {
           {/* Back to Login */}
           <div className="text-center mt-6">
             <Link 
-              to="/auth/login"
+              to="/login"
               className="text-sm font-medium transition-colors duration-200 inline-flex items-center"
               style={{ color: '#005440' }}
             >

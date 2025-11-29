@@ -15,6 +15,7 @@ import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsConditions from './pages/TermsConditions';
 import DashboardLayout from './layouts/DashboardLayout';
 import ProtectedRoute from './routes/ProtectedRoute';
+import PublicRoute from './routes/PublicRoute';
 import GlobalLoader from './components/GlobalLoader';
 
 function App() {
@@ -41,11 +42,11 @@ function App() {
         <Route path="/" element={<Navigate to="/login" replace />} />
         
         {/* Auth Routes */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/verify-otp" element={<VerifyOTP />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/password-reset-success" element={<PasswordResetSuccess />} />
+        <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+        <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
+        <Route path="/verify-otp" element={<PublicRoute><VerifyOTP /></PublicRoute>} />
+        <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
+        <Route path="/password-reset-success" element={<PublicRoute><PasswordResetSuccess /></PublicRoute>} />
         
         {/* Standalone Pages - NO DASHBOARD LAYOUT */}
         <Route 

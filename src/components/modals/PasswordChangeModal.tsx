@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { XMarkIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
+import { changePassword, LoginError } from '../../services/api_call';
 
 interface PasswordChangeModalProps {
   isOpen: boolean;
@@ -17,17 +18,37 @@ function PasswordChangeModal({ isOpen, onClose }: PasswordChangeModalProps) {
     new: false,
     confirm: false
   });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
+    setSuccess(null);
+
     if (formData.newPassword !== formData.confirmPassword) {
-      alert('Passwords do not match!');
+      setError('Passwords do not match!');
       return;
     }
-    console.log('Updating password...');
-    onClose();
+
+    setLoading(true);
+    try {
+      const response = await changePassword(formData.oldPassword, formData.newPassword, formData.confirmPassword);
+      setSuccess(response.message);
+      setFormData({ oldPassword: '', newPassword: '', confirmPassword: '' });
+      setTimeout(() => {
+        onClose();
+        setSuccess(null);
+      }, 2000);
+    } catch (err) {
+      const errorData = err as LoginError;
+      setError(errorData.error || 'Failed to change password.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -40,6 +61,22 @@ function PasswordChangeModal({ isOpen, onClose }: PasswordChangeModalProps) {
             <XMarkIcon className="w-6 h-6 text-gray-600" />
           </button>
         </div>
+
+        {error && (
+          <div className="px-6 pt-4">
+            <div className="bg-red-50 text-red-500 text-sm p-3 rounded-lg">
+              {error}
+            </div>
+          </div>
+        )}
+
+        {success && (
+          <div className="px-6 pt-4">
+            <div className="bg-green-50 text-green-600 text-sm p-3 rounded-lg">
+              {success}
+            </div>
+          </div>
+        )}
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
@@ -117,9 +154,10 @@ function PasswordChangeModal({ isOpen, onClose }: PasswordChangeModalProps) {
             </button>
             <button
               type="submit"
-              className="flex-1 px-6 py-3 bg-[#005440] text-white rounded-lg font-semibold hover:bg-[#004435] transition-all text-sm"
+              disabled={loading}
+              className="flex-1 px-6 py-3 bg-[#005440] text-white rounded-lg font-semibold hover:bg-[#004435] transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Update
+              {loading ? 'Updating...' : 'Update'}
             </button>
           </div>
         </form>

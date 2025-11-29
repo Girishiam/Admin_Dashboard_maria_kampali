@@ -10,6 +10,7 @@ import {
 } from '@heroicons/react/24/outline';
 import AccountSettingsModal from '../components/modals/AccountSettingsModal';
 import PasswordChangeModal from '../components/modals/PasswordChangeModal';
+import { getProfile, ProfileResponse } from '../services/api_call';
 
 // Import custom icons
 const menuItems = [
@@ -28,6 +29,7 @@ function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showAccountModal, setShowAccountModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [profile, setProfile] = useState<ProfileResponse['data'] | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -38,6 +40,19 @@ function DashboardLayout() {
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const fetchProfile = async () => {
+    try {
+      const response = await getProfile();
+      setProfile(response.data);
+    } catch (error) {
+      console.error('Failed to fetch profile:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchProfile();
   }, []);
 
 const handleLogout = () => {
@@ -148,13 +163,17 @@ const handleLogout = () => {
               className="bg-white border border-gray-200 rounded-xl flex items-center px-3 md:px-4 py-2 gap-2 md:gap-3 shadow-sm hover:border-gray-300 transition-all"
             >
               <img
-                src="https://ui-avatars.com/api/?name=Ovie+Rahaman&background=005440&color=fff&rounded=true&size=60"
+                src={profile?.image || "https://ui-avatars.com/api/?name=Ovie+Rahaman&background=005440&color=fff&rounded=true&size=60"}
                 alt="User"
-                className="w-8 h-8 md:w-10 md:h-10 rounded-full"
+                className="w-8 h-8 md:w-10 md:h-10 rounded-full object-cover"
               />
               <div className="hidden sm:flex flex-col items-start leading-tight">
-                <span className="font-bold text-gray-900 text-[13px] md:text-[14px]">Ovie Rahaman</span>
-                <span className="text-gray-500 text-[11px] md:text-[12px] font-medium">Super Admin</span>
+                <span className="font-bold text-gray-900 text-[13px] md:text-[14px]">
+                  {profile?.name || JSON.parse(localStorage.getItem('user') || '{}').name || JSON.parse(localStorage.getItem('user') || '{}').username || 'User'}
+                </span>
+                <span className="text-gray-500 text-[11px] md:text-[12px] font-medium">
+                  {profile?.role_display || JSON.parse(localStorage.getItem('user') || '{}').role || 'Admin'}
+                </span>
               </div>
               <ChevronDownIcon className={`w-4 h-4 md:w-5 md:h-5 text-gray-400 transition-transform duration-200 ${showDropdown ? 'rotate-180' : ''}`} />
             </button>
@@ -214,6 +233,8 @@ const handleLogout = () => {
           setShowAccountModal(false);
           setShowPasswordModal(true);
         }}
+        profileData={profile}
+        onProfileUpdate={fetchProfile}
       />
       <PasswordChangeModal 
         isOpen={showPasswordModal} 

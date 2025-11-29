@@ -1,12 +1,41 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { UsersIcon, DocumentTextIcon, NewspaperIcon } from '@heroicons/react/24/solid';
+import { getDashboardOverview, DashboardOverviewResponse } from '../services/api_call';
 
 function Dashboard() {
+  const [data, setData] = useState<DashboardOverviewResponse['data'] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await getDashboardOverview();
+        setData(response.data);
+      } catch (err) {
+        setError('Failed to load dashboard data');
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  if (loading) {
+    return <div className="flex justify-center items-center h-64">Loading...</div>;
+  }
+
+  if (error) {
+    return <div className="text-red-500 text-center">{error}</div>;
+  }
+
   const stats = [
     {
       id: 1,
       title: 'Total Users',
-      value: '1320',
+      value: data?.stats.total_users.toString() || '0',
       icon: UsersIcon,
       cardBg: 'linear-gradient(135deg, #D1FAE5 0%, #A7F3D0 100%)',
       iconBg: '#005440',
@@ -14,15 +43,15 @@ function Dashboard() {
     {
       id: 2,
       title: 'Total Subscribers',
-      value: '8',
+      value: data?.stats.total_subscribers.toString() || '0',
       icon: NewspaperIcon,
       cardBg: 'linear-gradient(135deg, #DBEAFE 0%, #BFDBFE 100%)',
       iconBg: '#005440',
     },
     {
       id: 3,
-      title: 'Total Posts',
-      value: '5',
+      title: 'New User',
+      value: data?.stats.new_users.toString() || '0',
       icon: DocumentTextIcon,
       cardBg: 'linear-gradient(135deg, #CFFAFE 0%, #A5F3FC 100%)',
       iconBg: '#005440',
@@ -42,7 +71,7 @@ function Dashboard() {
             letterSpacing: '0px',
           }}
         >
-          Hi, Good Morning
+          {data?.greeting}
         </p>
         <h1
           className="text-gray-900"
@@ -53,7 +82,7 @@ function Dashboard() {
             letterSpacing: '0px',
           }}
         >
-          Moni Roy
+          {data?.admin_name}
         </h1>
       </div>
 

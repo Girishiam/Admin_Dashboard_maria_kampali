@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PlusIcon, PencilIcon, TrashIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { getAdminUsers, AdminUsersResponse } from '../services/api_call';
 
 interface Administrator {
-  id: string;
+  id: number;
   name: string;
   email: string;
   phone: string;
   accessLevel: string;
-  avatar: string;
+  avatar: string | null;
 }
 
 interface CreateAdminModalProps {
@@ -274,22 +275,41 @@ function Administrators() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  const [administrators, setAdministrators] = useState<Administrator[]>(
-    Array.from({ length: 25 }, (_, i) => ({
-      id: `#${1233 + i}`,
-      name: 'Foysal Rahman',
-      email: 'user@example.com',
-      phone: `(${200 + i}) 555-${String(i).padStart(4, '0')}`,
-      accessLevel: i % 5 === 0 ? 'Super Admin' : 'Admin',
-      avatar: `https://ui-avatars.com/api/?name=Foysal+Rahman&background=f59e0b&color=fff&seed=${i}`
-    }))
-  );
+  const [administrators, setAdministrators] = useState<Administrator[]>([]);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchAdmins = async () => {
+      setLoading(true);
+      try {
+        const response = await getAdminUsers(currentPage);
+        const mappedUsers = response.data.users.map(user => ({
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          phone: user.phone,
+          accessLevel: user.access_level,
+          avatar: user.image
+        }));
+        setAdministrators(mappedUsers);
+        setTotalPages(response.data.pagination.total_pages);
+        setTotalUsers(response.data.pagination.total);
+      } catch (error) {
+        console.error('Failed to fetch admin users:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAdmins();
+  }, [currentPage]);
 
   // Pagination calculations
-  const totalPages = Math.ceil(administrators.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentAdministrators = administrators.slice(startIndex, endIndex);
+  const endIndex = Math.min(startIndex + itemsPerPage, totalUsers);
+  const currentAdministrators = administrators; // API handles pagination
 
   // Generate page numbers
   const getPageNumbers = () => {
@@ -323,7 +343,7 @@ function Administrators() {
   const handleCreateAdmin = (newAdmin: Omit<Administrator, 'id' | 'avatar'>) => {
     const admin: Administrator = {
       ...newAdmin,
-      id: `#${1233 + administrators.length}`,
+      id: administrators.length + 1, // Temporary ID
       avatar: `https://ui-avatars.com/api/?name=${newAdmin.name}&background=f59e0b&color=fff`
     };
     setAdministrators([...administrators, admin]);
@@ -381,10 +401,14 @@ function Administrators() {
             <tbody>
               {currentAdministrators.map((admin, index) => (
                 <tr key={index} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4 text-sm font-semibold text-gray-900 whitespace-nowrap">{admin.id}</td>
+                  <td className="px-6 py-4 text-sm font-semibold text-gray-900 whitespace-nowrap">#{admin.id}</td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <img src={admin.avatar} alt={admin.name} className="w-10 h-10 rounded-full flex-shrink-0" />
+                      <img 
+                        src={admin.avatar || `https://ui-avatars.com/api/?name=${admin.name}&background=f59e0b&color=fff`} 
+                        alt={admin.name} 
+                        className="w-10 h-10 rounded-full flex-shrink-0 object-cover" 
+                      />
                       <div>
                         <div className="text-sm font-bold text-gray-900">{admin.name}</div>
                         <div className="text-xs text-gray-500">{admin.email}</div>
@@ -421,12 +445,14 @@ function Administrators() {
             <div key={index} className="bg-white border-b border-gray-100 last:border-b-0">
               <div className="p-4 flex items-start justify-between gap-3">
                 <div className="flex items-start gap-3 flex-1 min-w-0">
-                  <div className="w-12 h-12 rounded-full bg-orange-500 flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
-                    FR
-                  </div>
+                  <img 
+                    src={admin.avatar || `https://ui-avatars.com/api/?name=${admin.name}&background=f59e0b&color=fff`} 
+                    alt={admin.name} 
+                    className="w-12 h-12 rounded-full object-cover flex-shrink-0"
+                  />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs font-semibold text-gray-900">{admin.id}</span>
+                      <span className="text-xs font-semibold text-gray-900">#{admin.id}</span>
                       <span className="px-2 py-0.5 bg-gray-100 text-gray-700 text-xs font-medium rounded">
                         Free
                       </span>
@@ -463,7 +489,7 @@ function Administrators() {
         <div className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 md:py-6 border-t border-gray-100 bg-gray-50">
           <div className="flex flex-col sm:flex-row justify-between items-center gap-3">
             <div className="text-xs sm:text-sm text-gray-600 order-2 sm:order-1">
-              Showing {startIndex + 1} to {Math.min(endIndex, administrators.length)} of {administrators.length} results
+              Showing {startIndex + 1} to {endIndex} of {totalUsers} results
             </div>
             <div className="flex items-center gap-1 flex-wrap justify-center order-1 sm:order-2">
               <button
