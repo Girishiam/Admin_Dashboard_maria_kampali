@@ -1,63 +1,113 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   BoldIcon, 
   ItalicIcon, 
   Bars3Icon, 
-  PencilIcon
+  PencilIcon,
+  ArrowPathIcon
 } from '@heroicons/react/24/outline';
+import { getTermsConditions, createTermsConditions, updateTermsConditions, TermsConditionsData } from '../services/api_call';
 
 function TermsConditions() {
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [termsData, setTermsData] = useState<TermsConditionsData | null>(null);
   const editorRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    fetchTerms();
+  }, []);
+
+  const fetchTerms = async () => {
+    try {
+      const response = await getTermsConditions();
+      if (response.success) {
+        setTermsData(response.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch terms & conditions:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const applyFormatting = (command: string, value?: string) => {
     document.execCommand(command, false, value);
     editorRef.current?.focus();
   };
 
-  const handleSave = () => {
-    setIsEditing(false);
-    const content = editorRef.current?.innerHTML;
-    console.log('Saved content:', content);
-    alert('Terms & Conditions updated successfully!');
+  const handleSave = async () => {
+    if (!editorRef.current) return;
+    
+    setSaving(true);
+    const content = editorRef.current.innerHTML;
+    
+    // Determine version and effective date
+    let version = '1.0';
+    let effectiveDate = new Date().toISOString().split('T')[0];
+
+    if (termsData?.id) {
+      // If updating, keep existing version
+      version = termsData.version;
+      // Set effective date to tomorrow to avoid "cannot be in the past" error
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      effectiveDate = tomorrow.toISOString().split('T')[0];
+    } else {
+      // If creating new, increment version
+      if (termsData?.version) {
+        const parts = termsData.version.split('.');
+        if (parts.length === 2) {
+          const major = parseInt(parts[0]);
+          const minor = parseInt(parts[1]);
+          version = `${major}.${minor + 1}`;
+        }
+      }
+      // Set effective date to tomorrow for new terms
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      effectiveDate = tomorrow.toISOString().split('T')[0];
+    }
+    
+    const payload = {
+      content,
+      version,
+      effective_date: effectiveDate,
+      title: 'Terms and Conditions',
+      is_active: true
+    };
+
+    try {
+      let response;
+      if (termsData?.id) {
+        response = await updateTermsConditions(termsData.id, payload);
+      } else {
+        response = await createTermsConditions(payload);
+      }
+
+      if (response.success) {
+        setTermsData(response.data);
+        setIsEditing(false);
+        // Optional: Show success message
+      }
+    } catch (error) {
+      console.error('Failed to save terms & conditions:', error);
+      alert('Failed to save changes. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const initialContent = `
-    <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: #1f2937;">Introduction</h2>
-    <p style="margin-bottom: 1.5rem; color: #1f2937; line-height: 1.6; font-size: 0.875rem;">We value your privacy and are committed to protecting your personal information. This Privacy Policy explains how we collect, use, and safeguard your data when you use our website.</p>
-
-    <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: #1f2937;">Information We Collect</h2>
-    <p style="margin-bottom: 0.75rem; color: #1f2937; line-height: 1.6; font-size: 0.875rem;">We may collect the following types of information:</p>
-    <ul style="list-style-type: disc; margin-left: 1.5rem; margin-bottom: 1.5rem;">
-      <li style="margin-bottom: 0.5rem; color: #1f2937; font-size: 0.875rem;"><strong>Personal Information:</strong> Name, email address, phone number when voluntarily provided</li>
-      <li style="margin-bottom: 0.5rem; color: #1f2937; font-size: 0.875rem;"><strong>Usage Data:</strong> IP address, browser type, pages visited, and time spent on our site</li>
-      <li style="margin-bottom: 0.5rem; color: #1f2937; font-size: 0.875rem;"><strong>Cookies:</strong> Small data files stored on your device to enhance user experience</li>
-    </ul>
-
-    <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: #1f2937;">How We Use Your Information</h2>
-    <p style="margin-bottom: 0.75rem; color: #1f2937; line-height: 1.6; font-size: 0.875rem;">Your information helps us to:</p>
-    <ul style="list-style-type: disc; margin-left: 1.5rem; margin-bottom: 1.5rem;">
-      <li style="margin-bottom: 0.5rem; color: #1f2937; font-size: 0.875rem;">Provide and maintain our services</li>
-      <li style="margin-bottom: 0.5rem; color: #1f2937; font-size: 0.875rem;">Improve and personalize user experience</li>
-      <li style="margin-bottom: 0.5rem; color: #1f2937; font-size: 0.875rem;">Communicate with you about updates and offers</li>
-      <li style="margin-bottom: 0.5rem; color: #1f2937; font-size: 0.875rem;">Analyze usage patterns to enhance our website</li>
-      <li style="margin-bottom: 0.5rem; color: #1f2937; font-size: 0.875rem;">Ensure security and prevent fraud</li>
-    </ul>
-
-    <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: #1f2937;">Data Security</h2>
-    <p style="margin-bottom: 1.5rem; color: #1f2937; line-height: 1.6; font-size: 0.875rem;">We implement industry-standard security measures to protect your personal information from unauthorized access, alteration, or disclosure. However, no method of transmission over the internet is 100% secure.</p>
-
-    <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: #1f2937;">Third-Party Services</h2>
-    <p style="margin-bottom: 1.5rem; color: #1f2937; line-height: 1.6; font-size: 0.875rem;">We may use third-party services for analytics and functionality. These services have their own privacy policies, and we encourage you to review them.</p>
-
-    <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: #1f2937;">Cookies Policy</h2>
-    <p style="margin-bottom: 1.5rem; color: #1f2937; line-height: 1.6; font-size: 0.875rem;">We use cookies to enhance your browsing experience. You can control cookie settings through your browser preferences. Disabling cookies may affect website functionality.</p>
-
-    <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: #1f2937;">Changes to This Policy</h2>
-    <p style="margin-bottom: 1.5rem; color: #1f2937; line-height: 1.6; font-size: 0.875rem;">We may update this Privacy Policy periodically. Any changes will be posted on this page with an updated revision date.</p>
-  `;
+  if (loading) {
+    return (
+      <div className="w-full min-h-screen flex items-center justify-center" style={{ backgroundColor: '#E6EEEC' }}>
+        <ArrowPathIcon className="w-8 h-8 animate-spin text-[#005440]" />
+      </div>
+    );
+  }
 
   return (
     <div className="w-full min-h-screen relative" style={{ backgroundColor: '#E6EEEC' }}>
@@ -91,12 +141,14 @@ function TermsConditions() {
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-2">
             Terms & Conditions
           </h1>
-          <p className="text-sm text-gray-600">22 December, 2025</p>
+          <p className="text-sm text-gray-600">
+            Updated At: {termsData?.updated_at ? new Date(termsData.updated_at).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' }) : new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
+          </p>
         </div>
 
         {/* Formatting Toolbar (shown only in edit mode) */}
         {isEditing && (
-          <div className="mb-4 p-3 bg-white rounded-lg shadow-sm border border-gray-200">
+          <div className="mb-4 p-3 bg-white rounded-lg shadow-sm border border-gray-200 sticky top-4 z-20">
             <div className="flex gap-2 flex-wrap items-center">
               <button
                 onClick={() => applyFormatting('bold')}
@@ -137,9 +189,11 @@ function TermsConditions() {
               <div className="ml-auto">
                 <button
                   onClick={handleSave}
-                  className="px-4 py-2 bg-[#005440] text-white rounded-lg font-semibold text-sm hover:bg-[#004435] transition-all"
+                  disabled={saving}
+                  className="px-4 py-2 bg-[#005440] text-white rounded-lg font-semibold text-sm hover:bg-[#004435] transition-all disabled:opacity-50 flex items-center gap-2"
                 >
-                  Save Changes
+                  {saving && <ArrowPathIcon className="w-4 h-4 animate-spin" />}
+                  {saving ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
             </div>
@@ -151,9 +205,9 @@ function TermsConditions() {
           ref={editorRef}
           contentEditable={isEditing}
           suppressContentEditableWarning
-          dangerouslySetInnerHTML={{ __html: initialContent }}
-          className={`outline-none ${isEditing ? 'border-2 border-dashed border-gray-400 bg-white p-6 rounded-lg' : ''}`}
-          style={{ minHeight: '600px' }}
+          dangerouslySetInnerHTML={{ __html: termsData?.content || '<p>No content available.</p>' }}
+          className={`outline-none ${isEditing ? 'border-2 border-dashed border-gray-400 bg-white p-6 rounded-lg min-h-[600px]' : ''}`}
+          style={{ minHeight: isEditing ? '600px' : 'auto' }}
         />
       </div>
     </div>

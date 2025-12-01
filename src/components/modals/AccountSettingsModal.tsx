@@ -7,7 +7,7 @@ interface AccountSettingsModalProps {
   onClose: () => void;
   onOpenPasswordModal: () => void;
   profileData: ProfileResponse['data'] | null;
-  onProfileUpdate: () => void;
+  onProfileUpdate: () => Promise<void> | void;
 }
 
 function AccountSettingsModal({ isOpen, onClose, onOpenPasswordModal, profileData, onProfileUpdate }: AccountSettingsModalProps) {
@@ -49,7 +49,7 @@ function AccountSettingsModal({ isOpen, onClose, onOpenPasswordModal, profileDat
       }
 
       await updateProfile(data);
-      onProfileUpdate();
+      await onProfileUpdate();
       onClose();
     } catch (err) {
       const errorData = err as LoginError;

@@ -221,7 +221,7 @@ const handleLogout = () => {
           </div>
           
           <div className="relative z-10 max-w-[1400px] mx-auto w-full">
-            <Outlet />
+            <Outlet context={{ profile, fetchProfile }} />
           </div>
         </main>
       </div>

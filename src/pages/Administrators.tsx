@@ -216,6 +216,7 @@ function EditAdminModal({ isOpen, onClose, admin, onSave }: EditAdminModalProps)
     e.preventDefault();
     onSave(formData);
     onClose();
+    
   };
 
   return (
@@ -402,11 +403,7 @@ function Administrators() {
         };
         const response = await updateAdministrator(updatedAdmin.id, payload);
         if (response.success) {
-            // Update local state or refetch
-            setAdministrators(administrators.map(admin => 
-                admin.id === updatedAdmin.id ? updatedAdmin : admin
-            ));
-            fetchAdmins(); // Refetch to ensure consistency
+            await fetchAdmins(); // Refetch to ensure consistency
         }
     } catch (error) {
         console.error('Failed to update administrator:', error);

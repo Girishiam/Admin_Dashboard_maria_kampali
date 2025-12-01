@@ -1,8 +1,15 @@
 import React, { useEffect, useState } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { UsersIcon, DocumentTextIcon, NewspaperIcon } from '@heroicons/react/24/solid';
-import { getDashboardOverview, DashboardOverviewResponse } from '../services/api_call';
+import { getDashboardOverview, DashboardOverviewResponse, ProfileResponse } from '../services/api_call';
+
+interface DashboardContext {
+  profile: ProfileResponse['data'] | null;
+  fetchProfile: () => Promise<void>;
+}
 
 function Dashboard() {
+  const { profile } = useOutletContext<DashboardContext>();
   const [data, setData] = useState<DashboardOverviewResponse['data'] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -82,7 +89,7 @@ function Dashboard() {
             letterSpacing: '0px',
           }}
         >
-          {data?.admin_name}
+          {profile?.name || data?.admin_name}
         </h1>
       </div>
 
