@@ -6,6 +6,7 @@ interface UserActionModalProps {
   onClose: () => void;
   userName: string;
   userId: string;
+  isDisabled: boolean;
   onDisableUser: (userId: string, disabled: boolean) => void;
   onDeleteUser: (userId: string) => void;
 }
@@ -15,24 +16,27 @@ function UserActionModal({
   onClose, 
   userName, 
   userId,
+  isDisabled,
   onDisableUser,
   onDeleteUser
 }: UserActionModalProps) {
-  const [isDisabled, setIsDisabled] = useState(false);
+  const [localIsDisabled, setLocalIsDisabled] = useState(isDisabled);
+
+  React.useEffect(() => {
+    setLocalIsDisabled(isDisabled);
+  }, [isDisabled]);
 
   if (!isOpen) return null;
 
   const handleToggleDisable = () => {
-    const newState = !isDisabled;
-    setIsDisabled(newState);
+    const newState = !localIsDisabled;
+    setLocalIsDisabled(newState);
     onDisableUser(userId, newState);
   };
 
   const handleDelete = () => {
-    if (window.confirm(`Are you sure you want to delete ${userName}'s account? This action cannot be undone.`)) {
-      onDeleteUser(userId);
-      onClose();
-    }
+    onDeleteUser(userId);
+    onClose();
   };
 
   return (
@@ -62,12 +66,12 @@ function UserActionModal({
             <button
               onClick={handleToggleDisable}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                isDisabled ? 'bg-[#005440]' : 'bg-gray-300'
+                localIsDisabled ? 'bg-[#005440]' : 'bg-gray-300'
               }`}
             >
               <span
                 className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  isDisabled ? 'translate-x-6' : 'translate-x-1'
+                  localIsDisabled ? 'translate-x-6' : 'translate-x-1'
                 }`}
               />
             </button>

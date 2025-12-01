@@ -1,25 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { XMarkIcon, PencilSquareIcon } from '@heroicons/react/24/outline';
+import { ApiKeyItem } from '../../services/api_call';
 
 interface EditApiKeyModalProps {
   isOpen: boolean;
   onClose: () => void;
-  apiKey: any;
-  onSubmit: (id: string, data: any) => void;
+  apiKey: ApiKeyItem | null;
+  onSubmit: (key: string, value: string) => void;
 }
 
 function EditApiKeyModal({ isOpen, onClose, apiKey, onSubmit }: EditApiKeyModalProps) {
-  const [formData, setFormData] = useState({
-    name: '',
-    key: ''
-  });
+  const [value, setValue] = useState('');
 
   useEffect(() => {
     if (apiKey) {
-      setFormData({
-        name: apiKey.name,
-        key: apiKey.key
-      });
+      setValue(apiKey.value);
     }
   }, [apiKey]);
 
@@ -27,7 +22,7 @@ function EditApiKeyModal({ isOpen, onClose, apiKey, onSubmit }: EditApiKeyModalP
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(apiKey.id, formData);
+    onSubmit(apiKey.key, value);
     onClose();
   };
 
@@ -49,26 +44,31 @@ function EditApiKeyModal({ isOpen, onClose, apiKey, onSubmit }: EditApiKeyModalP
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
           <div>
             <label className="block text-sm font-semibold text-gray-900 mb-2">Key Name</label>
-            <input
-              type="text"
-              required
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#005440] focus:border-[#005440] text-sm"
-              placeholder="e.g. Production Server"
-            />
+            <div className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700">
+              {apiKey.label}
+            </div>
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-2">API Key</label>
+            <label className="block text-sm font-semibold text-gray-900 mb-2">Key ID</label>
+            <div className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-sm font-mono text-gray-500">
+              {apiKey.key}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-900 mb-2">API Key Value</label>
             <input
               type="text"
               required
-              value={formData.key}
-              onChange={(e) => setFormData({ ...formData, key: e.target.value })}
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#005440] focus:border-[#005440] text-sm font-mono"
-              placeholder="pk_live_..."
+              placeholder="Enter new key value"
             />
+            <p className="mt-2 text-xs text-gray-500">
+              Updating this key requires a server restart for changes to take full effect.
+            </p>
           </div>
 
           <div className="pt-2 flex gap-3">

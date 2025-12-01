@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { PlusIcon, PencilIcon, TrashIcon, XMarkIcon } from '@heroicons/react/24/outline';
-import { getAdminUsers, AdminUsersResponse } from '../services/api_call';
+import { getAdminUsers, updateAdministrator, deleteAdministrator, createAdministrator, AdminUsersResponse } from '../services/api_call';
 
 interface Administrator {
   id: number;
@@ -14,7 +14,7 @@ interface Administrator {
 interface CreateAdminModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (admin: Omit<Administrator, 'id' | 'avatar'>) => void;
+  onSave: (admin: any) => Promise<void>;
 }
 
 interface EditAdminModalProps {
@@ -83,16 +83,27 @@ function CreateAdminModal({ isOpen, onClose, onSave }: CreateAdminModalProps) {
     name: '',
     email: '',
     phone: '',
-    accessLevel: 'Admin'
+    accessLevel: 'admin',
+    password: ''
   });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
-    setFormData({ name: '', email: '', phone: '', accessLevel: 'Admin' });
-    onClose();
+    setLoading(true);
+    setError(null);
+    try {
+        await onSave(formData);
+        setFormData({ name: '', email: '', phone: '', accessLevel: 'admin', password: '' });
+        onClose();
+    } catch (err: any) {
+        setError(err.error || 'Failed to create administrator');
+    } finally {
+        setLoading(false);
+    }
   };
 
   return (
@@ -106,6 +117,11 @@ function CreateAdminModal({ isOpen, onClose, onSave }: CreateAdminModalProps) {
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
+          {error && (
+            <div className="p-3 bg-red-50 text-red-700 text-sm rounded-lg">
+              {error}
+            </div>
+          )}
           <div>
             <label className="block text-sm font-semibold text-gray-900 mb-2">Name</label>
             <input
@@ -146,9 +162,21 @@ function CreateAdminModal({ isOpen, onClose, onSave }: CreateAdminModalProps) {
               onChange={(e) => setFormData({ ...formData, accessLevel: e.target.value })}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#005440] focus:border-[#005440] transition-all bg-white text-sm"
             >
-              <option>Admin</option>
-              <option>Super Admin</option>
+              <option value="admin">Admin</option>
+              <option value="superadmin">Super Admin</option>
             </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-900 mb-2">Password</label>
+            <input
+              type="password"
+              value={formData.password}
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#005440] focus:border-[#005440] transition-all text-sm"
+              required
+              minLength={8}
+            />
           </div>
 
           <div className="flex gap-3 pt-4">
@@ -156,14 +184,16 @@ function CreateAdminModal({ isOpen, onClose, onSave }: CreateAdminModalProps) {
               type="button"
               onClick={onClose}
               className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-all text-sm"
+              disabled={loading}
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="flex-1 px-6 py-3 bg-[#005440] text-white rounded-lg font-semibold hover:bg-[#004435] transition-all text-sm"
+              className="flex-1 px-6 py-3 bg-[#005440] text-white rounded-lg font-semibold hover:bg-[#004435] transition-all text-sm disabled:opacity-50"
+              disabled={loading}
             >
-              Create
+              {loading ? 'Creating...' : 'Create'}
             </button>
           </div>
         </form>
@@ -280,29 +310,29 @@ function Administrators() {
   const [totalUsers, setTotalUsers] = useState(0);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    const fetchAdmins = async () => {
-      setLoading(true);
-      try {
-        const response = await getAdminUsers(currentPage);
-        const mappedUsers = response.data.users.map(user => ({
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          phone: user.phone,
-          accessLevel: user.access_level,
-          avatar: user.image
-        }));
-        setAdministrators(mappedUsers);
-        setTotalPages(response.data.pagination.total_pages);
-        setTotalUsers(response.data.pagination.total);
-      } catch (error) {
-        console.error('Failed to fetch admin users:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchAdmins = async () => {
+    setLoading(true);
+    try {
+      const response = await getAdminUsers(currentPage);
+      const mappedUsers = response.data.users.map(user => ({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        accessLevel: user.access_level,
+        avatar: user.image
+      }));
+      setAdministrators(mappedUsers);
+      setTotalPages(response.data.pagination.total_pages);
+      setTotalUsers(response.data.pagination.total);
+    } catch (error) {
+      console.error('Failed to fetch admin users:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchAdmins();
   }, [currentPage]);
 
@@ -340,13 +370,21 @@ function Administrators() {
     return pages;
   };
 
-  const handleCreateAdmin = (newAdmin: Omit<Administrator, 'id' | 'avatar'>) => {
-    const admin: Administrator = {
-      ...newAdmin,
-      id: administrators.length + 1, // Temporary ID
-      avatar: `https://ui-avatars.com/api/?name=${newAdmin.name}&background=f59e0b&color=fff`
+  const handleCreateAdmin = async (newAdminData: any) => {
+    const payload = {
+        name: newAdminData.name,
+        email: newAdminData.email,
+        contact_number: newAdminData.phone,
+        access_level: newAdminData.accessLevel,
+        password: newAdminData.password
     };
-    setAdministrators([...administrators, admin]);
+    
+    const response = await createAdministrator(payload);
+    if (response.success) {
+        fetchAdmins(); // Refresh the list
+    } else {
+        throw { error: response.message || 'Failed to create administrator' };
+    }
   };
 
   const handleEditAdmin = (admin: Administrator) => {
@@ -354,10 +392,25 @@ function Administrators() {
     setShowEditModal(true);
   };
 
-  const handleSaveEdit = (updatedAdmin: Administrator) => {
-    setAdministrators(administrators.map(admin => 
-      admin.id === updatedAdmin.id ? updatedAdmin : admin
-    ));
+  const handleSaveEdit = async (updatedAdmin: Administrator) => {
+    try {
+        const payload = {
+            name: updatedAdmin.name,
+            email: updatedAdmin.email,
+            contact_number: updatedAdmin.phone, // Mapping phone to contact_number
+            access_level: updatedAdmin.accessLevel
+        };
+        const response = await updateAdministrator(updatedAdmin.id, payload);
+        if (response.success) {
+            // Update local state or refetch
+            setAdministrators(administrators.map(admin => 
+                admin.id === updatedAdmin.id ? updatedAdmin : admin
+            ));
+            fetchAdmins(); // Refetch to ensure consistency
+        }
+    } catch (error) {
+        console.error('Failed to update administrator:', error);
+    }
   };
 
   const handleDeleteClick = (admin: Administrator) => {
@@ -365,10 +418,23 @@ function Administrators() {
     setShowDeleteModal(true);
   };
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (adminToDelete) {
-      setAdministrators(administrators.filter(admin => admin.id !== adminToDelete.id));
-      setAdminToDelete(null);
+      try {
+          const response = await deleteAdministrator(adminToDelete.id);
+          if (response.success) {
+            setAdministrators(administrators.filter(admin => admin.id !== adminToDelete.id));
+            setAdminToDelete(null);
+            // Check if we need to change page
+            if (administrators.length === 1 && currentPage > 1) {
+                setCurrentPage(currentPage - 1);
+            } else {
+                fetchAdmins();
+            }
+          }
+      } catch (error) {
+          console.error('Failed to delete administrator:', error);
+      }
     }
   };
 
@@ -401,7 +467,9 @@ function Administrators() {
             <tbody>
               {currentAdministrators.map((admin, index) => (
                 <tr key={index} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4 text-sm font-semibold text-gray-900 whitespace-nowrap">#{admin.id}</td>
+                  <td className="px-6 py-4 text-sm font-semibold text-gray-900 whitespace-nowrap">
+                    #{startIndex + index + 1}
+                  </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <img 
@@ -452,7 +520,7 @@ function Administrators() {
                   />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs font-semibold text-gray-900">#{admin.id}</span>
+                      <span className="text-xs font-semibold text-gray-900">#{startIndex + index + 1}</span>
                       <span className="px-2 py-0.5 bg-gray-100 text-gray-700 text-xs font-medium rounded">
                         Free
                       </span>

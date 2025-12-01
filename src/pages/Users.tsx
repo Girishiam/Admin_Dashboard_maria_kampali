@@ -1,26 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NoSymbolIcon, XMarkIcon, TrashIcon } from '@heroicons/react/24/outline';
-
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  userEmail: string;
-  subscription: string;
-  phone: string;
-  avatar: string;
-  isDisabled?: boolean;
-}
-
-interface UserActionModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  userName: string;
-  userId: string;
-  isDisabled: boolean;
-  onDisableUser: (userId: string, disabled: boolean) => void;
-  onDeleteClick: () => void;
-}
+import { 
+  getUsers, 
+  toggleUserStatus, 
+  deleteUser, 
+  User, 
+  UsersListResponse 
+} from '../services/api_call';
+import UserActionModal from '../components/modals/UserActionModal';
 
 interface DeleteConfirmModalProps {
   isOpen: boolean;
@@ -75,76 +62,6 @@ function DeleteConfirmModal({ isOpen, onClose, onConfirm, userName }: DeleteConf
   );
 }
 
-// User Action Modal Component
-function UserActionModal({ 
-  isOpen, 
-  onClose, 
-  userName, 
-  userId,
-  isDisabled,
-  onDisableUser,
-  onDeleteClick
-}: UserActionModalProps) {
-  const [localDisabled, setLocalDisabled] = useState(isDisabled);
-
-  if (!isOpen) return null;
-
-  const handleToggleDisable = () => {
-    const newState = !localDisabled;
-    setLocalDisabled(newState);
-    onDisableUser(userId, newState);
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-xl font-bold text-gray-900">Action</h2>
-          <button 
-            onClick={onClose} 
-            className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <XMarkIcon className="w-6 h-6 text-gray-600" />
-          </button>
-        </div>
-
-        <div className="p-6 space-y-6">
-          <div className="text-sm text-gray-600">
-            Managing actions for: <span className="font-semibold text-gray-900">{userName}</span>
-          </div>
-
-          <div className="flex items-center justify-between py-3">
-            <span className="text-sm font-semibold text-gray-900">Disable User Access</span>
-            <button
-              onClick={handleToggleDisable}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                localDisabled ? 'bg-[#005440]' : 'bg-gray-300'
-              }`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  localDisabled ? 'translate-x-6' : 'translate-x-1'
-                }`}
-              />
-            </button>
-          </div>
-
-          <div className="flex items-center justify-between py-3">
-            <span className="text-sm font-semibold text-gray-900">Delete User Account</span>
-            <button
-              onClick={onDeleteClick}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-[#005440] hover:bg-[#004435] text-white rounded-lg font-semibold text-sm transition-all"
-            >
-              <TrashIcon className="w-4 h-4" />
-              <span>Delete</span>
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // Main User Management Component
 function UserManagement() {
   const [activeTab, setActiveTab] = useState<'all' | 'free' | 'subscribers'>('all');
@@ -153,59 +70,35 @@ function UserManagement() {
   const [showActionModal, setShowActionModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
-  const itemsPerPage = 10;
+  
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [pagination, setPagination] = useState<UsersListResponse['pagination'] | null>(null);
 
-  const [users, setUsers] = useState<User[]>(
-    Array.from({ length: 35 }, (_, i) => ({
-      id: `#${1233 + i}`,
-      name: 'Foysal Rahman',
-      email: `user${i}@example.com`,
-      userEmail: 'bockely@att.com',
-      subscription: i % 3 === 0 ? 'Free' : '1 Month',
-      phone: `(${200 + i}) 555-${String(i).padStart(4, '0')}`,
-      avatar: `https://ui-avatars.com/api/?name=Foysal+Rahman&background=f59e0b&color=fff&seed=${i}`,
-      isDisabled: false
-    }))
-  );
+  const fetchUsers = async (page: number, filter: string) => {
+    setLoading(true);
+    try {
+      const response = await getUsers(page, filter);
+      if (response.success) {
+        setUsers(response.users);
+        setPagination(response.pagination);
+      }
+    } catch (error) {
+      console.error('Failed to fetch users:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const filteredUsers = users.filter(user => {
-    if (activeTab === 'free') return user.subscription === 'Free';
-    if (activeTab === 'subscribers') return user.subscription !== 'Free';
-    return true;
-  });
-
-  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentUsers = filteredUsers.slice(startIndex, endIndex);
+  useEffect(() => {
+    fetchUsers(currentPage, activeTab);
+  }, [currentPage, activeTab]);
 
   const getPageNumbers = () => {
-    const pages: (number | string)[] = [];
-    const maxVisible = 5;
-    
-    if (totalPages <= maxVisible) {
-      for (let i = 1; i <= totalPages; i++) pages.push(i);
-    } else {
-      if (currentPage <= 3) {
-        for (let i = 1; i <= 4; i++) pages.push(i);
-        pages.push('...');
-        pages.push(totalPages);
-      } else if (currentPage >= totalPages - 2) {
-        pages.push(1);
-        pages.push('...');
-        for (let i = totalPages - 3; i <= totalPages; i++) pages.push(i);
-      } else {
-        pages.push(1);
-        pages.push('...');
-        pages.push(currentPage - 1);
-        pages.push(currentPage);
-        pages.push(currentPage + 1);
-        pages.push('...');
-        pages.push(totalPages);
-      }
-    }
-    return pages;
+    return pagination?.page_numbers || [];
   };
+
+  const startIndex = pagination?.start_index ? pagination.start_index - 1 : (currentPage - 1) * 10;
 
   const handleTabChange = (tab: 'all' | 'free' | 'subscribers') => {
     setActiveTab(tab);
@@ -217,10 +110,29 @@ function UserManagement() {
     setShowActionModal(true);
   };
 
-  const handleDisableUser = (userId: string, disabled: boolean) => {
-    setUsers(users.map(user => 
-      user.id === userId ? { ...user, isDisabled: disabled } : user
-    ));
+  const handleDisableUser = async (userId: string, disabled: boolean) => {
+    try {
+        // The API expects the NEW state. 
+        // If the user was disabled (true), we want to enable (false).
+        // If the user was enabled (false), we want to disable (true).
+        // The 'disabled' param coming from the modal is the NEW state requested.
+      const response = await toggleUserStatus(userId, disabled);
+      if (response.success) {
+        // Optimistically update the UI
+        setUsers(users.map(user => 
+          user.id === userId ? { ...user, is_disabled: disabled } : user
+        ));
+        // Also update selected user if it's the one being modified
+        if (selectedUser && selectedUser.id === userId) {
+            setSelectedUser({ ...selectedUser, is_disabled: disabled });
+        }
+      } else {
+        console.error('Failed to toggle user status:', response.error);
+        // Revert local state if needed (though we only updated on success here)
+      }
+    } catch (error) {
+      console.error('Error toggling user status:', error);
+    }
   };
 
   const handleDeleteClick = () => {
@@ -229,11 +141,26 @@ function UserManagement() {
     setShowDeleteModal(true);
   };
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (userToDelete) {
-      setUsers(users.filter(user => user.id !== userToDelete.id));
-      setUserToDelete(null);
-      setSelectedUser(null);
+      try {
+        const response = await deleteUser(userToDelete.id);
+        if (response.success) {
+          setUsers(users.filter(user => user.id !== userToDelete.id));
+          setUserToDelete(null);
+          setSelectedUser(null);
+          // Refresh list if needed, or just remove from local state as done above
+          if (users.length === 1 && currentPage > 1) {
+             setCurrentPage(currentPage - 1);
+          } else {
+             fetchUsers(currentPage, activeTab);
+          }
+        } else {
+          console.error('Failed to delete user:', response.error);
+        }
+      } catch (error) {
+        console.error('Error deleting user:', error);
+      }
     }
   };
 
@@ -277,116 +204,150 @@ function UserManagement() {
               <tr className="bg-gray-50">
                 <th className="px-6 py-4 text-left text-sm font-bold text-gray-900 whitespace-nowrap">SL no.</th>
                 <th className="px-6 py-4 text-left text-sm font-bold text-gray-900 whitespace-nowrap">User</th>
-                <th className="px-6 py-4 text-left text-sm font-bold text-gray-900 whitespace-nowrap">Email</th>
+                <th className="px-6 py-4 text-left text-sm font-bold text-gray-900 whitespace-nowrap">Contact Number</th>
                 <th className="px-6 py-4 text-left text-sm font-bold text-gray-900 whitespace-nowrap">Subscription</th>
-                <th className="px-6 py-4 text-left text-sm font-bold text-gray-900 whitespace-nowrap">Phone Number</th>
+                <th className="px-6 py-4 text-left text-sm font-bold text-gray-900 whitespace-nowrap">Status</th>
                 <th className="px-6 py-4 text-center text-sm font-bold text-gray-900 whitespace-nowrap">Action</th>
               </tr>
             </thead>
             <tbody>
-              {currentUsers.map((user, index) => (
-                <tr key={index} className={`hover:bg-gray-50 transition-colors ${user.isDisabled ? 'opacity-50' : ''}`}>
-                  <td className="px-6 py-4 text-sm font-semibold text-gray-900 whitespace-nowrap">{user.id}</td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <img src={user.avatar} alt={user.name} className="w-10 h-10 rounded-full flex-shrink-0" />
-                      <div>
-                        <div className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                          {user.name}
-                          {user.isDisabled && <span className="px-2 py-0.5 bg-red-100 text-red-700 text-xs font-semibold rounded">Disabled</span>}
-                        </div>
-                        <div className="text-xs text-gray-500">{user.userEmail}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-900">{user.email}</td>
-                  <td className="px-6 py-4 text-sm font-semibold text-gray-900 whitespace-nowrap">{user.subscription}</td>
-                  <td className="px-6 py-4 text-sm text-gray-900 whitespace-nowrap">{user.phone}</td>
-                  <td className="px-6 py-4 text-center">
-                    <button 
-                      onClick={() => handleUserAction(user)}
-                      className="inline-flex items-center justify-center w-10 h-10 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
-                    >
-                      <NoSymbolIcon className="w-5 h-5" />
-                    </button>
+              {loading ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                    Loading users...
                   </td>
                 </tr>
-              ))}
+              ) : users.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                    No users found.
+                  </td>
+                </tr>
+              ) : (
+                users.map((user, index) => (
+                  <tr key={user.id} className={`hover:bg-gray-50 transition-colors ${user.is_disabled ? 'opacity-50' : ''}`}>
+                    <td className="px-6 py-4 text-sm font-semibold text-gray-900 whitespace-nowrap">
+                      #{startIndex + index + 1}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <img src={user.user.profile_picture || user.user.avatar_url} alt={user.user.name} className="w-10 h-10 rounded-full flex-shrink-0" />
+                        <div>
+                          <div className="text-sm font-bold text-gray-900">{user.user.name}</div>
+                          <div className="text-xs text-gray-500">{user.email}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-900 whitespace-nowrap">{user.phone_number}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                        user.subscription.is_free ? 'bg-gray-100 text-gray-700' : 'bg-green-100 text-green-700'
+                      }`}>
+                        {user.subscription.name}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                        user.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                      }`}>
+                        {user.is_active ? 'Active' : 'Inactive'}
+                      </span>
+                    </td>
+
+                    <td className="px-6 py-4 text-center">
+                      <button 
+                        onClick={() => handleUserAction(user)}
+                        className="inline-flex items-center justify-center w-10 h-10 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+                      >
+                        <NoSymbolIcon className="w-5 h-5" />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
 
         {/* Mobile Card View */}
         <div className="md:hidden divide-y divide-gray-100">
-          {currentUsers.map((user, index) => (
-            <div key={index} className={`p-4 hover:bg-gray-50 transition-colors ${user.isDisabled ? 'opacity-50' : ''}`}>
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-start gap-3 flex-1 min-w-0">
-                  <img src={user.avatar} alt={user.name} className="w-12 h-12 rounded-full flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs font-semibold text-gray-500">{user.id}</span>
-                      <span className={`px-2 py-0.5 rounded text-xs font-semibold ${
-                        user.subscription === 'Free' ? 'bg-gray-100 text-gray-700' : 'bg-green-100 text-green-700'
-                      }`}>
-                        {user.subscription}
-                      </span>
-                      {user.isDisabled && <span className="px-2 py-0.5 bg-red-100 text-red-700 text-xs font-semibold rounded">Disabled</span>}
+          {loading ? (
+             <div className="p-8 text-center text-gray-500">Loading users...</div>
+          ) : users.length === 0 ? (
+             <div className="p-8 text-center text-gray-500">No users found.</div>
+          ) : (
+            users.map((user, index) => (
+              <div key={user.id} className={`p-4 hover:bg-gray-50 transition-colors ${user.is_disabled ? 'opacity-50' : ''}`}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3 flex-1 min-w-0">
+                    <img src={user.user.profile_picture || user.user.avatar_url} alt={user.user.name} className="w-12 h-12 rounded-full flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xs font-semibold text-gray-500">#{startIndex + index + 1}</span>
+                        <span className={`px-2 py-0.5 rounded text-xs font-semibold ${
+                          user.subscription.is_free ? 'bg-gray-100 text-gray-700' : 'bg-green-100 text-green-700'
+                        }`}>
+                          {user.subscription.name}
+                        </span>
+                        {user.is_disabled && <span className="px-2 py-0.5 bg-red-100 text-red-700 text-xs font-semibold rounded">Disabled</span>}
+                      </div>
+                      <div className="text-sm font-bold text-gray-900 mb-0.5">{user.user.name}</div>
+                      <div className="text-xs text-gray-600 mb-0.5 truncate">{user.email}</div>
+                      <div className="text-xs text-gray-500">{user.phone_number}</div>
                     </div>
-                    <div className="text-sm font-bold text-gray-900 mb-0.5">{user.name}</div>
-                    <div className="text-xs text-gray-600 mb-0.5 truncate">{user.email}</div>
-                    <div className="text-xs text-gray-500">{user.phone}</div>
                   </div>
+                  <button 
+                    onClick={() => handleUserAction(user)}
+                    className="inline-flex items-center justify-center w-9 h-9 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors flex-shrink-0"
+                  >
+                    <NoSymbolIcon className="w-5 h-5" />
+                  </button>
                 </div>
-                <button 
-                  onClick={() => handleUserAction(user)}
-                  className="inline-flex items-center justify-center w-9 h-9 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors flex-shrink-0"
-                >
-                  <NoSymbolIcon className="w-5 h-5" />
-                </button>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
 
         {/* Pagination */}
-        <div className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 md:py-6 border-t border-gray-100 bg-gray-50">
-          <div className="flex flex-col sm:flex-row justify-between items-center gap-3">
-            <div className="text-xs sm:text-sm text-gray-600 order-2 sm:order-1">
-              Showing {startIndex + 1} to {Math.min(endIndex, filteredUsers.length)} of {filteredUsers.length} results
-            </div>
-            <div className="flex items-center gap-1 flex-wrap justify-center order-1 sm:order-2">
-              <button
-                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                className="px-3 py-1.5 bg-white text-gray-700 rounded-lg font-semibold text-xs hover:bg-gray-100 transition-all disabled:opacity-50 border border-gray-200"
-                disabled={currentPage === 1}
-              >
-                Prev
-              </button>
-              {getPageNumbers().map((page, index) => (
+        {pagination && pagination.total_pages > 0 && (
+            <div className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 md:py-6 border-t border-gray-100 bg-gray-50">
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-3">
+                <div className="text-xs sm:text-sm text-gray-600 order-2 sm:order-1">
+                Showing {pagination.start_index} to {pagination.end_index} of {pagination.total_count} results
+                </div>
+                <div className="flex items-center gap-1 flex-wrap justify-center order-1 sm:order-2">
                 <button
-                  key={index}
-                  onClick={() => typeof page === 'number' && setCurrentPage(page)}
-                  disabled={page === '...'}
-                  className={`min-w-[32px] px-2 py-1.5 rounded-lg font-semibold text-xs transition-all ${
-                    page === currentPage ? 'bg-[#005440] text-white shadow-md border border-[#005440]' 
-                    : page === '...' ? 'bg-transparent text-gray-400 cursor-default' 
-                    : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
-                  }`}
+                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                    className="px-3 py-1.5 bg-white text-gray-700 rounded-lg font-semibold text-xs hover:bg-gray-100 transition-all disabled:opacity-50 border border-gray-200"
+                    disabled={!pagination.has_previous}
                 >
-                  {page}
+                    Prev
                 </button>
-              ))}
-              <button
-                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                className="px-3 py-1.5 bg-white text-gray-700 rounded-lg font-semibold text-xs hover:bg-gray-100 transition-all disabled:opacity-50 border border-gray-200"
-                disabled={currentPage === totalPages}
-              >
-                Next
-              </button>
+                {getPageNumbers().map((page, index) => (
+                    <button
+                    key={index}
+                    onClick={() => typeof page === 'number' && setCurrentPage(page)}
+                    disabled={page === '...'}
+                    className={`min-w-[32px] px-2 py-1.5 rounded-lg font-semibold text-xs transition-all ${
+                        page === currentPage ? 'bg-[#005440] text-white shadow-md border border-[#005440]' 
+                        : page === '...' ? 'bg-transparent text-gray-400 cursor-default' 
+                        : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
+                    }`}
+                    >
+                    {page}
+                    </button>
+                ))}
+                <button
+                    onClick={() => setCurrentPage(Math.min(pagination.total_pages, currentPage + 1))}
+                    className="px-3 py-1.5 bg-white text-gray-700 rounded-lg font-semibold text-xs hover:bg-gray-100 transition-all disabled:opacity-50 border border-gray-200"
+                    disabled={!pagination.has_next}
+                >
+                    Next
+                </button>
+                </div>
             </div>
-          </div>
-        </div>
+            </div>
+        )}
       </div>
 
       {/* Modals */}
@@ -394,11 +355,11 @@ function UserManagement() {
         <UserActionModal
           isOpen={showActionModal}
           onClose={() => setShowActionModal(false)}
-          userName={selectedUser.name}
+          userName={selectedUser.user.name}
           userId={selectedUser.id}
-          isDisabled={selectedUser.isDisabled || false}
+          isDisabled={selectedUser.is_disabled}
           onDisableUser={handleDisableUser}
-          onDeleteClick={handleDeleteClick}
+          onDeleteUser={() => handleDeleteClick()}
         />
       )}
       
@@ -409,7 +370,7 @@ function UserManagement() {
           setUserToDelete(null);
         }}
         onConfirm={handleConfirmDelete}
-        userName={userToDelete?.name || ''}
+        userName={userToDelete?.user.name || ''}
       />
     </div>
   );
