@@ -7,7 +7,7 @@ import {
   PencilIcon,
   ArrowPathIcon
 } from '@heroicons/react/24/outline';
-import { getTermsConditions, createTermsConditions, updateTermsConditions, TermsConditionsData } from '../services/api_call';
+import { getTermsConditions, updateTermsConditions, TermsConditionsData } from '../services/api_call';
 
 function TermsConditions() {
   const navigate = useNavigate();
@@ -23,7 +23,7 @@ function TermsConditions() {
 
   const fetchTerms = async () => {
     try {
-      const response = await getTermsConditions();
+      const response = await getTermsConditions(1);
       if (response.success) {
         setTermsData(response.data);
       }
@@ -46,30 +46,16 @@ function TermsConditions() {
     const content = editorRef.current.innerHTML;
     
     // Determine version and effective date
-    let version = '1.0';
-    let effectiveDate = new Date().toISOString().split('T')[0];
+    let version = '2.0';
+    const effectiveDate = new Date().toISOString().split('T')[0];
 
-    if (termsData?.id) {
-      // If updating, keep existing version
-      version = termsData.version;
-      // Set effective date to tomorrow to avoid "cannot be in the past" error
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      effectiveDate = tomorrow.toISOString().split('T')[0];
-    } else {
-      // If creating new, increment version
-      if (termsData?.version) {
-        const parts = termsData.version.split('.');
-        if (parts.length === 2) {
-          const major = parseInt(parts[0]);
-          const minor = parseInt(parts[1]);
-          version = `${major}.${minor + 1}`;
-        }
+    if (termsData?.version) {
+      const parts = termsData.version.split('.');
+      if (parts.length >= 1) {
+        const major = parseInt(parts[0]);
+        // Increment major version as requested (+1)
+        version = `${major + 1}.0`;
       }
-      // Set effective date to tomorrow for new terms
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      effectiveDate = tomorrow.toISOString().split('T')[0];
     }
     
     const payload = {
@@ -81,12 +67,7 @@ function TermsConditions() {
     };
 
     try {
-      let response;
-      if (termsData?.id) {
-        response = await updateTermsConditions(termsData.id, payload);
-      } else {
-        response = await createTermsConditions(payload);
-      }
+      const response = await updateTermsConditions(1, payload);
 
       if (response.success) {
         setTermsData(response.data);

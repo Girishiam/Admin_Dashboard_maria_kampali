@@ -972,27 +972,10 @@ export interface PrivacyPolicyResponse {
     data: PrivacyPolicyData;
 }
 
-export const getPrivacyPolicy = async () => {
+export const getPrivacyPolicy = async (id: number) => {
     try {
         const token = localStorage.getItem('accessToken');
-        const response = await api.get<PrivacyPolicyResponse>('authentication/privacy-policy/', {
-            headers: {
-                Authorization: `Bearer ${token}`,
-            },
-        });
-        return response.data;
-    } catch (error) {
-        if (axios.isAxiosError(error) && error.response) {
-            throw error.response.data as LoginError;
-        }
-        throw { error: 'An unexpected error occurred' };
-    }
-};
-
-export const createPrivacyPolicy = async (data: { content: string; version: string; effective_date: string; title: string; is_active: boolean }) => {
-    try {
-        const token = localStorage.getItem('accessToken');
-        const response = await api.post<PrivacyPolicyResponse>('authentication/privacy-policy/', data, {
+        const response = await api.get<PrivacyPolicyResponse>(`authentication/privacy-policy/${id}/`, {
             headers: {
                 Authorization: `Bearer ${token}`,
             },
@@ -1040,27 +1023,10 @@ export interface TermsConditionsResponse {
     data: TermsConditionsData;
 }
 
-export const getTermsConditions = async () => {
+export const getTermsConditions = async (id: number) => {
     try {
         const token = localStorage.getItem('accessToken');
-        const response = await api.get<TermsConditionsResponse>('authentication/privacy-policy/terms-and-conditions/', {
-            headers: {
-                Authorization: `Bearer ${token}`,
-            },
-        });
-        return response.data;
-    } catch (error) {
-        if (axios.isAxiosError(error) && error.response) {
-            throw error.response.data as LoginError;
-        }
-        throw { error: 'An unexpected error occurred' };
-    }
-};
-
-export const createTermsConditions = async (data: { content: string; version: string; effective_date: string; title: string; is_active: boolean }) => {
-    try {
-        const token = localStorage.getItem('accessToken');
-        const response = await api.post<TermsConditionsResponse>('authentication/privacy-policy/terms-and-conditions/', data, {
+        const response = await api.get<TermsConditionsResponse>(`authentication/terms-and-conditions/${id}/`, {
             headers: {
                 Authorization: `Bearer ${token}`,
             },
@@ -1077,7 +1043,7 @@ export const createTermsConditions = async (data: { content: string; version: st
 export const updateTermsConditions = async (id: number, data: Partial<{ content: string; version: string; effective_date: string; title: string; is_active: boolean }>) => {
     try {
         const token = localStorage.getItem('accessToken');
-        const response = await api.patch<TermsConditionsResponse>(`authentication/privacy-policy/terms-and-conditions/${id}/`, data, {
+        const response = await api.patch<TermsConditionsResponse>(`authentication/terms-and-conditions/${id}/`, data, {
             headers: {
                 Authorization: `Bearer ${token}`,
             },
@@ -1090,3 +1056,4 @@ export const updateTermsConditions = async (id: number, data: Partial<{ content:
         throw { error: 'An unexpected error occurred' };
     }
 };
+

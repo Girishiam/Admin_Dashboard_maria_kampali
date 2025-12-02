@@ -7,7 +7,7 @@ import {
   PencilIcon,
   ArrowPathIcon
 } from '@heroicons/react/24/outline';
-import { getPrivacyPolicy, createPrivacyPolicy, updatePrivacyPolicy, PrivacyPolicyData } from '../services/api_call';
+import { getPrivacyPolicy, updatePrivacyPolicy, PrivacyPolicyData } from '../services/api_call';
 
 function PrivacyPolicy() {
   const navigate = useNavigate();
@@ -23,7 +23,7 @@ function PrivacyPolicy() {
 
   const fetchPolicy = async () => {
     try {
-      const response = await getPrivacyPolicy();
+      const response = await getPrivacyPolicy(35);
       if (response.success) {
         setPolicyData(response.data);
       }
@@ -46,34 +46,16 @@ function PrivacyPolicy() {
     const content = editorRef.current.innerHTML;
     
     // Determine version and effective date
-    let version = '1.0';
-    let effectiveDate = new Date().toISOString().split('T')[0];
+    let version = '2.0';
+    const effectiveDate = new Date().toISOString().split('T')[0];
 
-    if (policyData?.id) {
-      // If updating, keep existing version and effective date (or update date if needed)
-      version = policyData.version;
-      // For updates, we might want to keep the original effective date or set a new one.
-      // If the backend validates "not in past" even for updates, we might need to set it to tomorrow.
-      // Let's try keeping the existing one first, but if it fails, we'll need to handle it.
-      // Actually, to be safe and avoid "past date" error on update if the policy is old, 
-      // let's set it to tomorrow if we are modifying it.
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      effectiveDate = tomorrow.toISOString().split('T')[0];
-    } else {
-      // If creating new, increment version
-      if (policyData?.version) {
-        const parts = policyData.version.split('.');
-        if (parts.length === 2) {
-          const major = parseInt(parts[0]);
-          const minor = parseInt(parts[1]);
-          version = `${major}.${minor + 1}`;
-        }
+    if (policyData?.version) {
+      const parts = policyData.version.split('.');
+      if (parts.length >= 1) {
+        const major = parseInt(parts[0]);
+        // Increment major version as requested (+1)
+        version = `${major + 1}.0`;
       }
-      // Set effective date to tomorrow for new policies
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      effectiveDate = tomorrow.toISOString().split('T')[0];
     }
     
     const payload = {
@@ -85,16 +67,7 @@ function PrivacyPolicy() {
     };
 
     try {
-      let response;
-      if (policyData?.id) {
-        // For updates, we use PATCH and only send changed fields if needed.
-        // But here we are saving the content, so we send the payload.
-        // We might not need to send version if we are just updating content of same version,
-        // but the logic above determines if version changes.
-        response = await updatePrivacyPolicy(policyData.id, payload);
-      } else {
-        response = await createPrivacyPolicy(payload);
-      }
+      const response = await updatePrivacyPolicy(35, payload);
 
       if (response.success) {
         setPolicyData(response.data);
