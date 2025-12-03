@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ComposedChart,
   Bar,
@@ -8,15 +8,15 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  Area,
   Line
 } from 'recharts';
-import { ChartDataPoint } from '../../services/api_call';
-
-interface SubscriptionGrowthChartProps {
-  data: ChartDataPoint[];
-  isLoading: boolean;
-}
+import { 
+  getSubscriptionChartData, 
+  ChartDataPoint, 
+  ChartSummary, 
+  ChartPeriod 
+} from '../../services/api_call';
+import { ArrowPathIcon } from '@heroicons/react/24/outline';
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
@@ -39,11 +39,56 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
-const SubscriptionGrowthChart: React.FC<SubscriptionGrowthChartProps> = ({ data, isLoading }) => {
+const SubscriptionGrowthChart: React.FC = () => {
+  const [data, setData] = useState<ChartDataPoint[]>([]);
+  const [summary, setSummary] = useState<ChartSummary | null>(null);
+  const [period, setPeriod] = useState<ChartPeriod | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchData = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await getSubscriptionChartData();
+      if (response.success) {
+        setData(response.chart_data);
+        setSummary(response.summary);
+        setPeriod(response.period);
+      } else {
+        setError('Failed to load chart data');
+      }
+    } catch (err) {
+      console.error('Error fetching subscription chart data:', err);
+      setError('An error occurred while loading data');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
   if (isLoading) {
     return (
       <div className="w-full h-[400px] flex items-center justify-center bg-gray-50 rounded-xl border border-gray-100 animate-pulse">
         <div className="text-gray-400 text-sm">Loading chart data...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="w-full h-[400px] flex flex-col items-center justify-center bg-gray-50 rounded-xl border border-gray-100">
+        <div className="text-red-500 text-sm mb-2">{error}</div>
+        <button 
+          onClick={fetchData}
+          className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-xs"
+        >
+          <ArrowPathIcon className="w-4 h-4" />
+          <span>Retry</span>
+        </button>
       </div>
     );
   }
@@ -58,9 +103,34 @@ const SubscriptionGrowthChart: React.FC<SubscriptionGrowthChartProps> = ({ data,
 
   return (
     <div className="w-full bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-      <div className="mb-6">
-        <h3 className="text-lg font-bold text-gray-900">Growth Analytics</h3>
-        <p className="text-sm text-gray-500">New subscriptions vs cancellations over time</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div>
+          <h3 className="text-lg font-bold text-gray-900">Growth Analytics</h3>
+          <p className="text-sm text-gray-500">
+            {period ? `New subscriptions vs cancellations (${new Date(period.start).toLocaleDateString()} - ${new Date(period.end).toLocaleDateString()})` : 'New subscriptions vs cancellations over time'}
+          </p>
+        </div>
+        
+        {summary && (
+          <div className="flex flex-wrap gap-4">
+            <div className="bg-green-50 px-3 py-2 rounded-lg">
+              <p className="text-xs text-green-600 font-medium">New Subs</p>
+              <p className="text-lg font-bold text-green-700">{summary.total_new_subscriptions}</p>
+            </div>
+            <div className="bg-red-50 px-3 py-2 rounded-lg">
+              <p className="text-xs text-red-600 font-medium">Canceled</p>
+              <p className="text-lg font-bold text-red-700">{summary.total_canceled}</p>
+            </div>
+            <div className="bg-blue-50 px-3 py-2 rounded-lg">
+              <p className="text-xs text-blue-600 font-medium">Net Growth</p>
+              <p className="text-lg font-bold text-blue-700">{summary.net_growth}</p>
+            </div>
+            <div className="bg-gray-50 px-3 py-2 rounded-lg">
+              <p className="text-xs text-gray-600 font-medium">Rate</p>
+              <p className="text-lg font-bold text-gray-700">{summary.churn_rate}%</p>
+            </div>
+          </div>
+        )}
       </div>
       
       <div className="h-[350px] w-full">
