@@ -12,6 +12,7 @@ function CreatePlanModal({ isOpen, onClose, onSubmit }: CreatePlanModalProps) {
   const [formData, setFormData] = useState<CreatePlanData>({
     name: '',
     slug: '',
+    description: '',
     price: 0,
     plan_type: 'recurring',
     interval: 'month',
@@ -34,7 +35,8 @@ function CreatePlanModal({ isOpen, onClose, onSubmit }: CreatePlanModalProps) {
       // Reset form
       setFormData({
         name: '',
-        slug: '',
+        slug: '', 
+        description: '',
         price: 0,
         plan_type: 'recurring',
         interval: 'month',
@@ -109,6 +111,17 @@ function CreatePlanModal({ isOpen, onClose, onSubmit }: CreatePlanModalProps) {
               />
             </div>
 
+            <div>
+              <label className="block text-sm font-semibold text-gray-900 mb-1.5">Description</label>
+              <textarea
+                required
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                className="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#005440] focus:border-[#005440] text-sm placeholder:text-gray-400"
+                placeholder="e.g. Monthly Plan without Trial Period"
+                disabled={isLoading}
+              />
+            </div>
             {/* Price */}
             <div>
               <label className="block text-sm font-semibold text-gray-900 mb-1.5">Price</label>
