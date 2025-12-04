@@ -655,6 +655,7 @@ export const getSubscriptionPlan = async (id: string) => {
 export interface CreatePlanData {
     name: string;
     slug: string;
+    description: string;
     price: number;
     plan_type: string;
     interval?: string;
@@ -665,6 +666,7 @@ export interface CreatePlanData {
 export interface UpdatePlanData {
     name?: string;
     slug?: string;
+    description?: string;
     price?: number;
     plan_type?: string;
     interval?: string;
