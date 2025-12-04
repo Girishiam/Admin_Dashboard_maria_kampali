@@ -29,10 +29,12 @@ interface DeleteConfirmModalProps {
   onClose: () => void;
   onConfirm: () => void;
   adminName: string;
+  error?: string | null;
+  isDeleting?: boolean;
 }
 
 // Delete Confirmation Modal - Responsive
-function DeleteConfirmModal({ isOpen, onClose, onConfirm, adminName }: DeleteConfirmModalProps) {
+function DeleteConfirmModal({ isOpen, onClose, onConfirm, adminName, error, isDeleting }: DeleteConfirmModalProps) {
   if (!isOpen) return null;
 
   return (
@@ -50,6 +52,13 @@ function DeleteConfirmModal({ isOpen, onClose, onConfirm, adminName }: DeleteCon
         </div>
 
         <div className="p-4 sm:p-5 lg:p-6">
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-100 text-red-700 text-xs sm:text-sm rounded-lg flex items-start gap-2">
+              <span className="flex-shrink-0">⚠️</span>
+              <span>{error}</span>
+            </div>
+          )}
+
           <p className="text-xs sm:text-sm text-gray-600 mb-4 sm:mb-6">
             Are you sure you want to delete <span className="font-semibold text-gray-900">{adminName}</span>'s account? This action cannot be undone.
           </p>
@@ -57,19 +66,30 @@ function DeleteConfirmModal({ isOpen, onClose, onConfirm, adminName }: DeleteCon
           <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
             <button
               onClick={onClose}
-              className="w-full sm:flex-1 px-4 sm:px-6 py-2.5 sm:py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-all text-sm order-2 sm:order-1"
+              disabled={isDeleting}
+              className="w-full sm:flex-1 px-4 sm:px-6 py-2.5 sm:py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-all text-sm order-2 sm:order-1 disabled:opacity-50"
             >
               Cancel
             </button>
             <button
-              onClick={() => {
-                onConfirm();
-                onClose();
-              }}
-              className="w-full sm:flex-1 px-4 sm:px-6 py-2.5 sm:py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-all text-sm flex items-center justify-center gap-2 order-1 sm:order-2"
+              onClick={onConfirm}
+              disabled={isDeleting}
+              className="w-full sm:flex-1 px-4 sm:px-6 py-2.5 sm:py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-all text-sm flex items-center justify-center gap-2 order-1 sm:order-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <TrashIcon className="w-4 h-4" />
-              <span>Delete Account</span>
+              {isDeleting ? (
+                <>
+                  <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span>Deleting...</span>
+                </>
+              ) : (
+                <>
+                  <TrashIcon className="w-4 h-4" />
+                  <span>Delete Account</span>
+                </>
+              )}
             </button>
           </div>
         </div>
@@ -84,7 +104,7 @@ function CreateAdminModal({ isOpen, onClose, onSave }: CreateAdminModalProps) {
     name: '',
     email: '',
     phone: '',
-    accessLevel: 'admin',
+    accessLevel: '',
     password: ''
   });
   const [loading, setLoading] = useState(false);
@@ -99,7 +119,7 @@ function CreateAdminModal({ isOpen, onClose, onSave }: CreateAdminModalProps) {
     setError(null);
     try {
         await onSave(formData);
-        setFormData({ name: '', email: '', phone: '', accessLevel: 'admin', password: '' });
+        setFormData({ name: '', email: '', phone: '', accessLevel: '', password: '' });
         onClose();
     } catch (err: any) {
         setError(err.error || 'Failed to create administrator');
@@ -109,7 +129,7 @@ function CreateAdminModal({ isOpen, onClose, onSave }: CreateAdminModalProps) {
   };
 
   const handleClose = () => {
-    setFormData({ name: '', email: '', phone: '', accessLevel: 'admin', password: '' });
+    setFormData({ name: '', email: '', phone: '', accessLevel: '', password: '' });
     setError(null);
     setShowPassword(false);
     onClose();
@@ -201,7 +221,7 @@ function CreateAdminModal({ isOpen, onClose, onSave }: CreateAdminModalProps) {
                 id="admin-access"
                 value={formData.accessLevel}
                 onChange={(e) => setFormData({ ...formData, accessLevel: e.target.value })}
-                className="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#005440] focus:border-[#005440] transition-all bg-white text-sm appearance-none cursor-pointer"
+                className="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#005440] focus:border-[#005440] transition-all bg-white text-sm appearance-none cursor-pointer disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
                 style={{
                   backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
                   backgroundPosition: 'right 0.75rem center',
@@ -353,7 +373,8 @@ function EditAdminModal({ isOpen, onClose, admin, onSave }: EditAdminModalProps)
             <select
               value={formData.accessLevel}
               onChange={(e) => setFormData({ ...formData, accessLevel: e.target.value })}
-              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#005440] focus:border-[#005440] transition-all bg-white text-sm"
+              disabled={true}
+              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#005440] focus:border-[#005440] transition-all bg-white text-sm disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
             >
               <option>Admin</option>
               <option>Super Admin</option>
@@ -388,6 +409,8 @@ function Administrators() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedAdmin, setSelectedAdmin] = useState<Administrator | null>(null);
   const [adminToDelete, setAdminToDelete] = useState<Administrator | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
@@ -506,24 +529,31 @@ function Administrators() {
 
   const handleDeleteClick = (admin: Administrator) => {
     setAdminToDelete(admin);
+    setDeleteError(null);
     setShowDeleteModal(true);
   };
 
   const handleConfirmDelete = async () => {
     if (adminToDelete) {
+      setIsDeleting(true);
+      setDeleteError(null);
       try {
           const response = await deleteAdministrator(adminToDelete.id);
           if (response.success) {
             setAdministrators(administrators.filter(admin => admin.id !== adminToDelete.id));
             setAdminToDelete(null);
+            setShowDeleteModal(false);
             if (administrators.length === 1 && currentPage > 1) {
                 setCurrentPage(currentPage - 1);
             } else {
                 fetchAdmins();
             }
           }
-      } catch (error) {
+      } catch (error: any) {
           console.error('Failed to delete administrator:', error);
+          setDeleteError(error.error || 'Failed to delete administrator');
+      } finally {
+          setIsDeleting(false);
       }
     }
   };
@@ -731,9 +761,12 @@ function Administrators() {
         onClose={() => {
           setShowDeleteModal(false);
           setAdminToDelete(null);
+          setDeleteError(null);
         }}
         onConfirm={handleConfirmDelete}
         adminName={adminToDelete?.name || ''}
+        error={deleteError}
+        isDeleting={isDeleting}
       />
     </div>
   );
